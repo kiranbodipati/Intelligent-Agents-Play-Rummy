@@ -10,7 +10,7 @@ suitDict = {"S": 0, "H": 1, "C": 2, "D":3}
 def getFirstCard(matrix, shp):
     for i in range(shp[0]):
         for j in range(shp[1]):
-            if matrix[i][j]:
+            if matrix[i][j] == 1:
                 return (i, j)
 
 # Gets all indexes of same value for same-value melds
@@ -18,7 +18,7 @@ def getSameValue(matrix, index):
     j = index[1]
     result = []
     for i in range(4):
-        if i != index[0] and matrix[i][j]:
+        if i != index[0] and matrix[i][j] == 1:
             result.append((i, j))
     return result
 
@@ -162,17 +162,17 @@ class Hand:
         if j == 12:  # king
             right1 = right2 = right3 = (False, (i,j))
         elif j == 11:  # queen
-            right1 = (bool(matrix[i][j+1]), (i, j+1))
-            right2 = (bool(matrix[i][0]), (i, 0))
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][0]==1), (i, 0))
             right3 = False
         elif j == 10:  # jack:
-            right1 = (bool(matrix[i][j+1]), (i, j+1))
-            right2 = (bool(matrix[i][j+2]), (i, j+2))
-            right3 = (bool(matrix[i][0]), (i, 0))
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][j+2]==1), (i, j+2))
+            right3 = (bool(matrix[i][0]==1), (i, 0))
         else:
-            right1 = (bool(matrix[i][j+1]), (i, j+1))
-            right2 = (bool(matrix[i][j+2]), (i, j+2))
-            right3 = (bool(matrix[i][j+3]), (i, j+3))
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][j+2]==1), (i, j+2))
+            right3 = (bool(matrix[i][j+3]==1), (i, j+3))
         
         melds = []
         # no elif anywhere in case the other card needs to be used for something; considers all cases
@@ -180,7 +180,6 @@ class Hand:
         # straight melds
         # pure highest in order so it's considered first if possible
         if right1[0] and right2[0]:
-            # add to melds here
             if right3[0]:
                 melds.append([(i, j), right1[1], right2[1], right3[1]])  # priority 1
             melds.append([(i, j), right1[1], right2[1]])  # priority 2
