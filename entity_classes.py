@@ -116,15 +116,22 @@ class Hand:
         else:
             self.jokers += 1
     
-    def discard(self, val):
-        for index, card in enumerate(self.cards):
-            if card.value == val:
-                if val != -1:
-                    self.cardMatrix[suitDict[card.suit]][card.value-1] = 0
-                else:
-                    self.jokers -= 1
-                return self.cards.pop(index)
-        return "error"
+    # def discard(self, val):
+    #     for index, card in enumerate(self.cards):
+    #         if card.value == val:
+    #             if val != -1:
+    #                 self.cardMatrix[suitDict[card.suit]][card.value-1] = 0
+    #             else:
+    #                 self.jokers -= 1
+    #             return self.cards.pop(index)
+    #     return "error"
+
+    def discard(self, index):
+        if self.cards[index].value != -1:
+            self.cardMatrix[suitDict[self.cards[index].suit]][self.cards[index].value-1] = 0
+        else:
+            self.jokers -= 1
+        return self.cards.pop(index)
 
     def checkMelds(self, matrix=None, jkr=None):  # only checks for win state for now, returns bool if game is won
         try:
