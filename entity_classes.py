@@ -19,7 +19,7 @@ def getSameValue(matrix, index):
     result = []
     for i in range(4):
         if i != index[0] and matrix[i][j]:
-            result.append(i)
+            result.append((i, j))
     return result
 
 # Entity classes
@@ -127,12 +127,18 @@ class Hand:
         return "error"
 
     def checkMelds(self, matrix=None, jkr=None):  # only checks for win state for now, returns bool if game is won
-        if matrix==None:
-            matrix = self.cardMatrix.copy()
-        if jkr==None:
-            jkr = self.jokers.copy()
+        try:
+            if matrix==None:
+                matrix = self.cardMatrix.copy()
+        except:
+            pass
+        try:
+            if jkr==None:
+                jkr = self.jokers
+        except:
+            pass
         # Recursive function
-        # find first 1 in matrix, check all melds including chances+jokers (reduce num of jokers in this case) using this card
+        # find first 1 in matrix, check all melds (including chances+jokers, reduce num of jokers in this case) using this card
         # for each meld, recursive call checkMelds with new matrix, without the cards in the meld being considered
         # if no chances => return false, backtrack one step
         # base case => matrix is all 0s, return true
@@ -169,36 +175,57 @@ class Hand:
         if right1[0] and right2[0]:
             # add to melds here
             if right3[0]:
-                # add to melds here
-                pass
+                melds.append([(i, j), right1[1], right2[1], right3[1]])  # priority 1
+            melds.append([(i, j), right1[1], right2[1]])  # priority 2
             if jkr:
-                # add to melds here
-                pass
+                melds.append([(i, j), right1[1], right2[1], "JKR"])  # priority 3
         if right1[0] and jkr:
-            # add to melds here
             if right3[0]:
-                # add to melds here
-                pass
+                melds.append([(i, j), right1[1], "JKR", right3[1]])  # priority 4
+            melds.append([(i, j), right1[1], "JKR"])  # priority 5
         if right2[0] and jkr:
-            # add to melds here
             if right3[0]:
-                # add to melds here
-                pass
-        if right3[0] and jkr==2:
-            # add to melds here
-            pass
-        if jkr==2:
-            # add to melds here
-            pass
+                melds.append([(i, j), "JKR", right2[1], right3[1]])  # priority 6
+            melds.append([(i, j), "JKR", right2[1]])  # priority 7
+        if jkr > 1:
+            if right3[0]:
+                melds.append([(i, j), "JKR", "JKR", right3[1]])  # priority 8
+            melds.append([(i, j), "JKR", "JKR"])  # priority 9
 
         # same value melds
         j_vals = getSameValue(matrix, (i, j))
         if len(j_vals) == 3:
-            # add to melds here
-            pass
-        if len(j_vals) == 2:
-            # add to melds here
-            pass
-        if jkr:
-            # add to melds here
-            pass
+            melds.append([(i, j), j_vals[0], j_vals[1], j_vals[2]])  # priority 10
+            melds.append([(i, j), j_vals[0], j_vals[1]])  # priority 11
+            melds.append([(i, j), j_vals[2], j_vals[1]])  # priority 12
+            melds.append([(i, j), j_vals[0], j_vals[2]])  # priority 13
+            if jkr:
+                melds.append([(i, j), "JKR", j_vals[1], j_vals[2]])  # priority 14
+                melds.append([(i, j), j_vals[0], "JKR", j_vals[2]])  # priority 15
+                melds.append([(i, j), j_vals[0], j_vals[1], "JKR"])  # priority 16
+            if jkr > 1:
+                melds.append([(i, j), j_vals[0], "JKR", "JKR"])  # priority 17
+                melds.append([(i, j), j_vals[1], "JKR", "JKR"])  # priority 18
+                melds.append([(i, j), j_vals[2], "JKR", "JKR"])  # priority 19
+        elif len(j_vals) == 2:
+            melds.append([(i, j), j_vals[0], j_vals[1]])  # priority 10
+            if jkr:
+                melds.append([(i, j), j_vals[0], j_vals[1], "JKR"])  # priority 11
+                melds.append([(i, j), "JKR", j_vals[1]])  # priority 12
+                melds.append([(i, j), j_vals[0], "JKR"])  # priority 13
+        elif len(j_vals) == 1 and jkr:
+            melds.append([(i, j), j_vals[0], "JKR"])  # priority 10
+
+        print(melds)  # for debugging purposes only
+
+        for meld in melds:  # if no melds, following block is skipped and it returns false
+            matrixCopy = matrix.copy()
+            jkrCopy = jkr
+            for index in meld:
+                if index == "JKR":
+                    jkrCopy -= 1
+                else:
+                    matrixCopy[index[0]][index[1]] = 0
+            if self.checkMelds(matrixCopy, jkrCopy):  # recursive call
+                return True  # dfs match found
+        return False  # no match in this dfs branch, backtracks one step
