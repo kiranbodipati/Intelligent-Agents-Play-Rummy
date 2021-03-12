@@ -2,6 +2,8 @@ from collections import deque
 import numpy as np
 import random
 
+from numpy.matrixlib.defmatrix import matrix
+
 suitDict = {"S": 0, "H": 1, "C": 2, "D":3}
 
 # Helper functions for matrix representation of cards
@@ -98,7 +100,9 @@ class Hand:
     def __init__(self):
         self.cards = []
         self.cardMatrix = np.zeros((4,13))
+        self.compMatrix = np.zeros((4,13))  # used for checking if game is complete
         self.jokers = 0
+        self.rummyJokerVal = -1
     
     def __repr__(self) -> str:
         return "Hand()"
@@ -109,9 +113,17 @@ class Hand:
             output += str(card) + "    "
         return output
     
+    def setJoker(self, jokerVal):
+        if jokerVal == -1:  # joker card is rummy joker drawn at start of round
+            return
+        for i in range(4):
+            self.cardMatrix[i][jokerVal-1] = -1
+            self.compMatrix[i][jokerVal-1] = -1
+        self.rummyJokerVal = jokerVal
+    
     def draw(self, card):
         self.cards.append(card)
-        if card.value != -1:
+        if card.value != -1 and card.value != self.rummyJokerVal:
             self.cardMatrix[suitDict[card.suit]][card.value-1] = 1
         else:
             self.jokers += 1
@@ -152,7 +164,7 @@ class Hand:
         # end of recursion case => if all melds lead to false, return false
 
         # Base case:
-        if np.all(matrix==0):
+        if (matrix==self.compMatrix).all():
             return True
         
         # Recursive case

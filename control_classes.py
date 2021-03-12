@@ -29,6 +29,8 @@ class GameMgr:
         # initializes game state
         self.deck.shuffle(seed)
         self.deck.joker = self.deck.draw()
+        self.Player1.hand.setJoker(self.deck.joker.value)
+        self.Player2.hand.setJoker(self.deck.joker.value)
         for _ in range(13):
             self.Player1.hand.draw(self.deck.draw())
             self.Player2.hand.draw(self.deck.draw())
