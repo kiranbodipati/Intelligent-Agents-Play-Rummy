@@ -45,6 +45,14 @@ class Card:
             return self.suit + strVal[self.value - 1]
         else:
             return "JKR"
+    
+    def __eq__(self, object) -> bool:
+        if not isinstance(object, Card):
+            return False
+        return self.value==object.value and self.suit==object.suit
+    
+    def __ne__(self, object) -> bool:
+        return not self.__eq__(object)
 
 class Deck:
     def __init__(self):
@@ -146,6 +154,7 @@ class Hand:
         return self.cards.pop(index)
 
     def checkMelds(self, matrix=None, jkr=None):  # only checks for win state for now, returns bool if game is won
+        # TODO: implement pure and straight checks
         try:
             if matrix==None:
                 matrix = self.cardMatrix.copy()
