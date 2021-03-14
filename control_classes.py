@@ -56,6 +56,9 @@ class GameMgr:
     def Play(self, CurrentPlayer):
         print(int(CurrentPlayer+1), "\'s turn:")
         print("Hand:", self.Players[CurrentPlayer].hand)
+        print(self.discardPile)
+        print()
+        print("Joker:", self.deck.joker)
         print()
         print("Where do you want to?\nEnter \n'D' to draw from Deck \n'P' to draw from discard pile")
         
@@ -77,7 +80,7 @@ class GameMgr:
             except ValueError:
                 print("Error - incorrect input, try again:")
                 continue
-        print("index: ", "".join([str(x)+"   " for x in range(0, len(self.Players[CurrentPlayer].hand.cards))]))
+        print("index: ", "".join([str(x)+"     " for x in range(0, len(self.Players[CurrentPlayer].hand.cards))]))
         print("Hand:", self.Players[CurrentPlayer].hand)
         print("Enter index of card to disard:")
         while True:
