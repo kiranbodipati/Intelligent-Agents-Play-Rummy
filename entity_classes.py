@@ -72,14 +72,14 @@ class Deck:
         random.shuffle(self.cards)
     
     def draw(self):
-        return self.cards.pop()
+        return self.cards.pop()  # direction doesn't matter so pop from end
     
     def returnToDeck(self, card):
         self.cards.append(card)
 
 class DiscardPile:
     def __init__(self):
-        self.cards = deque()
+        self.cards = deque()  # acts as a stack
     
     def __repr__(self) -> str:
         return "DiscardPile()"
