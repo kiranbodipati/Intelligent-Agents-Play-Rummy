@@ -37,7 +37,7 @@ class Card:
             self.points = 10
     
     def __repr__(self) -> str:
-        return "Card()"
+        return self.__str__()
     
     def __str__(self) -> str:
         strVal = ["A"] + [str(x) for x in range(2, 11)] + ["J", "Q", "K"]
