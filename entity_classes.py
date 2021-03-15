@@ -44,7 +44,7 @@ class Card:
         if self.value != -1:
             return self.suit + strVal[self.value - 1]
         else:
-            return "JKR"
+            return self.suit  # will return "JK1" or "JK2" for joker cards
     
     def __eq__(self, object) -> bool:
         if not isinstance(object, Card):
@@ -53,6 +53,9 @@ class Card:
     
     def __ne__(self, object) -> bool:
         return not self.__eq__(object)
+    
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 class Deck:
     def __init__(self):
