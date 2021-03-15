@@ -44,7 +44,7 @@ class Card:
         if self.value != -1:
             return self.suit + strVal[self.value - 1]
         else:
-            return "JKR"
+            return self.suit  # will return "JK1" or "JK2" for joker cards
     
     def __eq__(self, object) -> bool:
         if not isinstance(object, Card):
@@ -53,6 +53,9 @@ class Card:
     
     def __ne__(self, object) -> bool:
         return not self.__eq__(object)
+    
+    def __hash__(self) -> int:
+        return hash(str(self))
 
 class Deck:
     def __init__(self):
@@ -153,7 +156,7 @@ class Hand:
             self.jokers -= 1
         return self.cards.pop(index)
 
-    def checkMelds(self, matrix=None, jkr=None):  # only checks for win state for now, returns bool if game is won
+    def checkMelds(self, matrix=None, jkr=None, pureFlag = 0, straightCount = 0):  # only checks for win state for now, returns bool if game is won
         # TODO: implement pure and straight checks
         try:
             if matrix==None:
@@ -174,7 +177,11 @@ class Hand:
 
         # Base case:
         if (matrix==self.compMatrix).all():
-            return True
+            if straightCount > 1 and pureFlag:
+                print("Note: Additional jokers in hand may be excluded in following melds")
+                return True
+            else:
+                return False
         
         # Recursive case
         # search for straight melds on right side only, prevents overlap
@@ -202,57 +209,65 @@ class Hand:
         # pure highest in order so it's considered first if possible
         if right1[0] and right2[0]:
             if right3[0]:
-                melds.append([(i, j), right1[1], right2[1], right3[1]])  # priority 1
-            melds.append([(i, j), right1[1], right2[1]])  # priority 2
+                melds.append([[(i, j), right1[1], right2[1], right3[1]], 1, 1])  # priority 1
+            melds.append([[(i, j), right1[1], right2[1]], 1, 1])  # priority 2
             if jkr:
-                melds.append([(i, j), right1[1], right2[1], "JKR"])  # priority 3
+                melds.append([[(i, j), right1[1], right2[1], "JKR"], 0, 1])  # priority 3
         if right1[0] and jkr:
             if right3[0]:
-                melds.append([(i, j), right1[1], "JKR", right3[1]])  # priority 4
-            melds.append([(i, j), right1[1], "JKR"])  # priority 5
+                melds.append([[(i, j), right1[1], "JKR", right3[1]], 0, 1])  # priority 4
+            melds.append([[(i, j), right1[1], "JKR"], 0, 1])  # priority 5
         if right2[0] and jkr:
             if right3[0]:
-                melds.append([(i, j), "JKR", right2[1], right3[1]])  # priority 6
-            melds.append([(i, j), "JKR", right2[1]])  # priority 7
+                melds.append([[(i, j), "JKR", right2[1], right3[1]], 0, 1])  # priority 6
+            melds.append([[(i, j), "JKR", right2[1]], 0, 1])  # priority 7
         if jkr > 1:
             if right3[0]:
-                melds.append([(i, j), "JKR", "JKR", right3[1]])  # priority 8
-            melds.append([(i, j), "JKR", "JKR"])  # priority 9
+                melds.append([[(i, j), "JKR", "JKR", right3[1]], 0, 1])  # priority 8
+            melds.append([[(i, j), "JKR", "JKR"], 0, 1])  # priority 9
 
         # same value melds
         j_vals = getSameValue(matrix, (i, j))
         if len(j_vals) == 3:
-            melds.append([(i, j), j_vals[0], j_vals[1], j_vals[2]])  # priority 10
-            melds.append([(i, j), j_vals[0], j_vals[1]])  # priority 11
-            melds.append([(i, j), j_vals[2], j_vals[1]])  # priority 12
-            melds.append([(i, j), j_vals[0], j_vals[2]])  # priority 13
+            melds.append([[(i, j), j_vals[0], j_vals[1], j_vals[2]], 0, 0])  # priority 10
+            melds.append([[(i, j), j_vals[0], j_vals[1]], 0, 0])  # priority 11
+            melds.append([[(i, j), j_vals[2], j_vals[1]], 0, 0])  # priority 12
+            melds.append([[(i, j), j_vals[0], j_vals[2]], 0, 0])  # priority 13
             if jkr:
-                melds.append([(i, j), "JKR", j_vals[1], j_vals[2]])  # priority 14
-                melds.append([(i, j), j_vals[0], "JKR", j_vals[2]])  # priority 15
-                melds.append([(i, j), j_vals[0], j_vals[1], "JKR"])  # priority 16
+                melds.append([[(i, j), "JKR", j_vals[1], j_vals[2]], 0, 0])  # priority 14
+                melds.append([[(i, j), j_vals[0], "JKR", j_vals[2]], 0, 0])  # priority 15
+                melds.append([[(i, j), j_vals[0], j_vals[1], "JKR"], 0, 0])  # priority 16
             if jkr > 1:
-                melds.append([(i, j), j_vals[0], "JKR", "JKR"])  # priority 17
-                melds.append([(i, j), j_vals[1], "JKR", "JKR"])  # priority 18
-                melds.append([(i, j), j_vals[2], "JKR", "JKR"])  # priority 19
+                melds.append([[(i, j), j_vals[0], "JKR", "JKR"], 0, 0])  # priority 17
+                melds.append([[(i, j), j_vals[1], "JKR", "JKR"], 0, 0])  # priority 18
+                melds.append([[(i, j), j_vals[2], "JKR", "JKR"], 0, 0])  # priority 19
         elif len(j_vals) == 2:
-            melds.append([(i, j), j_vals[0], j_vals[1]])  # priority 10
+            melds.append([[(i, j), j_vals[0], j_vals[1]], 0, 0])  # priority 10
             if jkr:
-                melds.append([(i, j), j_vals[0], j_vals[1], "JKR"])  # priority 11
-                melds.append([(i, j), "JKR", j_vals[1]])  # priority 12
-                melds.append([(i, j), j_vals[0], "JKR"])  # priority 13
+                melds.append([[(i, j), j_vals[0], j_vals[1], "JKR"], 0, 0])  # priority 11
+                melds.append([[(i, j), "JKR", j_vals[1]], 0, 0])  # priority 12
+                melds.append([[(i, j), j_vals[0], "JKR"], 0, 0])  # priority 13
         elif len(j_vals) == 1 and jkr:
-            melds.append([(i, j), j_vals[0], "JKR"])  # priority 10
+            melds.append([[(i, j), j_vals[0], "JKR"], 0, 0])  # priority 10
 
-        print(melds)  # for debugging purposes only
+        # print(melds)  # for debugging purposes only
 
-        for meld in melds:  # if no melds, following block is skipped and it returns false
+        for item in melds:  # if no melds, following block is skipped and it returns false
+            meld = item[0]
             matrixCopy = matrix.copy()
             jkrCopy = jkr
+            pureCopy = pureFlag
+            straightCopy = straightCount
+            if item[1]:
+                pureCopy += 1
+            if item[2]:
+                straightCopy += 1
             for index in meld:
                 if index == "JKR":
                     jkrCopy -= 1
                 else:
                     matrixCopy[index[0]][index[1]] = 0
-            if self.checkMelds(matrixCopy, jkrCopy):  # recursive call
+            if self.checkMelds(matrixCopy, jkrCopy, pureCopy, straightCopy):  # recursive call
+                print(meld)
                 return True  # dfs match found
         return False  # no match in this dfs branch, backtracks one step

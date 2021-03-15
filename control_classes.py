@@ -183,10 +183,106 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         pass
     
 
-class BasicAgent(Player):
+class BasicAgent(Player):  # TODO: override getDiscardChoice()
     
     def getPickupChoice(self, openCard):
         return self.calculatePickup(openCard)
+    
+    def getDiscardChoice(self):
+        useful = [item for sublist in self.melds+self.chances for item in sublist]
+        useful = list(set(useful))
+        junk = [card for card in self.hand.cards if (card not in useful and card.value != -1 and card.value != self.hand.rummyJokerVal)]
+
+        if len(junk):
+            junk.sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(junk[0])  # discards junk card of highest value
+        
+        # if no junk cards, needs to break chances in following order of priority:
+        # 1. 4-carder chance if 4-carder already exists (discard the single card on one side of the gap)
+        # 2. same number chance card that isn't in a straight chance, but the other card of the chance is, of highest value
+        # 3. same number chance where neither card is in a straight chance, of highest value
+        # 4. straight sequence chance with a gap, of highest value
+        # 5. highest card not in a sequence
+
+        discardOptions = []
+
+        # -------------------------------------- Priority #1 -----------------------------------------------
+        flag4carder = 0
+        for meld in self.melds:
+            if len(meld) == 4:
+                flag4carder = 1
+                break
+        if flag4carder:
+            for chance in self.chances:
+                if len(chance) == 3:
+                    chanceCopy = sorted(chance, key=lambda x: x.value)
+                    # figuring out which of the 3 is alone on one side of the gap in this 4-carder straight chance
+                    i = chanceCopy[0].value
+                    if chanceCopy[1].value != i+1:
+                        discardOptions.append(chanceCopy[0])
+                    else:
+                        discardOptions.append(chanceCopy[2])
+        if len(discardOptions):
+            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(discardOptions[0])
+        
+        # -------------------------------------- Priority #2 -----------------------------------------------
+        sameNumChanceCards = []
+        straightChanceCards = []
+        for chance in self.chances:
+            if chance[0].value == chance[1].value:
+                sameNumChanceCards.extend(chance)
+            else:
+                straightChanceCards.extend(chance)
+        sameNumChanceCards = list(set(sameNumChanceCards)).sort(key=lambda x: x.value, reverse=True)
+        straightChanceCards = list(set(straightChanceCards)).sort(key=lambda x: x.value, reverse=True)
+
+        for card in sameNumChanceCards:
+            if card not in straightChanceCards:
+                for card2 in sameNumChanceCards:
+                    if card2.value == card.value and card != card2:
+                        if card2 in straightChanceCards:
+                            discardOptions.append(card)
+                            break
+        if len(discardOptions):
+            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(discardOptions[0])
+        
+        # -------------------------------------- Priority #3 -----------------------------------------------
+        discardOptions = sameNumChanceCards.copy()
+        if len(discardOptions):
+            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(discardOptions[0])
+        
+        # -------------------------------------- Priority #4 -----------------------------------------------
+        for chance in self.chances:
+            if len(chance) == 2 and abs(chance[0].value - chance[1].value) in [2, 11, 12]:  # includes AQ and AK as gap chances
+                discardOptions.extend(chance)
+        if len(discardOptions):
+            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(discardOptions[0])
+        
+        # -------------------------------------- Priority #5 -----------------------------------------------
+        discardOptions = straightChanceCards.copy()
+        if len(discardOptions):
+            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            return self.hand.cards.index(discardOptions[0])
+        
+        # ------------------------------------ Error Handling ----------------------------------------------
+        # if it got this far, there are no chances, no junk cards, only melds.
+        # since there are 14 cards, there's either two melds of 4 cards or one meld with 5+.
+        # so, we can remove one card from the end of the longest meld and win regardless.
+        # extra error handling - if all lists are empty, just return 0, though it'll probably break anyway.
+
+        try:
+            meldCopy = sorted(self.melds, key=lambda x: len(x), reverse=True)
+            longestMeld = meldCopy[0]
+            longestMeld.sort(key=lambda x: x.value, reverse=True)
+            return self.hand.cards.index(longestMeld[0])
+        except:
+            return 0
+
+
 
 class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
     def __init__(self):
