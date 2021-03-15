@@ -111,10 +111,66 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         # TODO: needs to be written by Abhishek
         pass
 
-    def calculatePickup(self, openCard):  # same logic for both agents so I'm coding it here. Not used by user.
-        # TODO: complete this function
+    def updateMeldsAndChances(self, card, RemoveFlag=False): # updates melds and chances without modifying hand
+        # TODO: needs to be written by Abhishek
+        # RemoveFlag: True - remove card, False - add card
         pass
 
+    def calculatePickup(self, openCard):  # same logic for both agents so I'm coding it here. Not used by user.
+        # return 'D' or 'P'
+        ## Calculate all flags first before picking up....
+        flag4carder=0
+        for meld in self.melds:  
+            if len(meld)>=4:
+                flag4carder+=1
+        
+        flagPureSeq=0
+        for meld in self.melds:  
+            if meld[0].value!=meld[0].value:
+                flagPureSeq+=1
+        
+        countMelds=len(self.melds)
+        countChances=len(self.chances)
+        
+        #cases for picking up from discard pile
+        #priority 1: Check if the card on top of discard pile is a Joker, pickup
+        if(openCard.value==-1 or openCard.value==self.hand.rummyJokerVal):
+            return 'P'
+
+        #Assume we pickup a card that is not joker. Recalculate the melds and chances, if the recalculated satisfies, we pickup from the pile
+        self.updateMeldsAndChances(openCard)
+
+        #priority 2: Check if the card on top of discard pile forms a pure Sequence:
+        flagPureSeqUpd=0
+        for meld in self.melds:  
+            if meld[0].value!=meld[0].value:
+                flagPureSeqUpd+=1
+        
+        if (flagPureSeqUpd>flagPureSeq):
+            return "P"
+
+        #priority 3: Check if the card on top of discard pile forms a 4 carder Sequence  
+        flag4carderUpd=0
+        for meld in self.melds:  
+            if len(meld)>=4:
+                flag4carderUpd+=1
+        
+        if (flag4carderUpd>flag4carder):
+            return "P"
+        #priority 4: Check if there is any new Sequences created
+        countMeldsUpd=len(self.melds)
+        if (countMeldsUpd>countMelds):
+            return "P"
+        #priority 5: Check any new chance is created
+        countChancesUpd=len(self.chances)
+        if (countMeldsUpd>countChances):
+            return "P"
+        # Else Pickup from Deck(return D). 
+        # Remove the card that we picked up from the discard pile
+        self.updateMeldsAndChances(openCard, True)
+        return "D"
+        
+        
     def isObserving(self):  # info is passed to player if it is "observing", true for only advanced agent
         return False
     
