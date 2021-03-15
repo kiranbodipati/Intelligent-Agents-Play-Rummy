@@ -10,7 +10,7 @@ class GameMgr:
         # self.Player2 = Player()
         # initializes game state
         if gameMode == "agents":
-            self.Players = [BasicAgent(), AdvancedAgent()]
+            self.Players = [AdvancedAgent(), BasicAgent()]
         else:
             self.Players = [Player(), Player()]
         
@@ -39,13 +39,15 @@ class GameMgr:
                 player.initializeHeatmap(self.deck.joker.value)
             for _ in range(13):
                 player.hand.draw(self.deck.draw())
+            player.calculateMeldsAndChances()
         self.discardPile.discard(self.deck.draw())    
     
     def PlayPvP(self):
         CurrentPlayer=random.choice([0,1])
         self.turn=0
         while(True):
-            self.Play(CurrentPlayer)
+            if self.Play(CurrentPlayer):
+                break
             self.turn+=1
             if self.Players[CurrentPlayer].hand.checkMelds()==True:
                 print("Player", CurrentPlayer+1, "wins!")
@@ -54,7 +56,7 @@ class GameMgr:
             print("Turn:",self.turn)
 
     
-    def Play(self, CurrentPlayer):
+    def Play(self, CurrentPlayer):  # return true at any point to quit the game
         print(int(CurrentPlayer+1), "\'s turn:")
         print("Hand:", self.Players[CurrentPlayer].hand)
         print(self.discardPile)
@@ -67,7 +69,11 @@ class GameMgr:
         while True:
             try:
                 loc = self.Players[CurrentPlayer].getPickupChoice(openCard)
+                print(loc)
                 if loc=='D':
+                    if not len(self.deck.cards):
+                        print("Deck exhausted, it's a draw.")
+                        return True
                     if self.Players[1-CurrentPlayer].isObserving:
                         self.Players[1-CurrentPlayer].opponentPickChoice(openCard, False)
                     self.Players[CurrentPlayer].hand.draw(self.deck.draw())  # assumes the agent does not pick up and discard the open card, remember to test later
@@ -81,18 +87,21 @@ class GameMgr:
             except ValueError:
                 print("Error - incorrect input, try again:")
                 continue
+        self.Players[CurrentPlayer].calculateMeldsAndChances()
         print("index: ", "".join([str(x)+"     " for x in range(0, len(self.Players[CurrentPlayer].hand.cards))]))
         print("Hand:", self.Players[CurrentPlayer].hand)
         print("Enter index of card to disard:")
         while True:
             try:
                 ind=int(self.Players[CurrentPlayer].getDiscardChoice())
+                print(ind)
                 self.discardPile.discard(self.Players[CurrentPlayer].hand.discard(ind))
+                self.Players[CurrentPlayer].calculateMeldsAndChances()
                 if self.Players[1-CurrentPlayer].isObserving:
                     self.Players[1-CurrentPlayer].opponentDiscards(self.discardPile.cards[-1])
                 break
             except:
-                print("Error - invalid choice, try again:")
+                print("Error - invalid choice, try again:", ind)
                 continue
         print("Hand:", self.Players[CurrentPlayer].hand)
         
@@ -113,98 +122,60 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
     def calculateMeldsAndChances(self):  # populates melds and chances without modifying hand
         # TODO: needs to be written by Abhishek
         suite_list = ['S','H','C','D']
-        melds_row = []
+        self.melds = []
+        self.chances = []
         a = self.hand.cardMatrix.copy()
         for i in range(4):
-            c = []
-            count = 0
             for j in range(13):
-                if(a[i][j]==1):
-                    count+=1
-                else:
-                    count = 0
-                k = 0
-                if(count >= 3):
-                    if(count ==3 ):
-                        k = j-2
-                        for x in range(k,k+3):
-                            c.append(Card(x+1,suite_list[i]))
-                            a[i][x] = 0
-                    elif(count==4):
-                        k=j-3
-                        for x in range(k,k+4):
-                            c.append(Card(x+1,suite_list[i]))
-                            a[i][x] = 0
-            if len(c)!=0:
-                melds_row.append(c)
-        melds_column = []
-        for i in range(13):
-            f = []
-            count = 0
-            for j in range(4):
-                if(a[j][i]==1):
-                    count += 1
-            if(count>=3):
-                for j in range(4):
-                    if(a[j][i]==1):
-                        f.append(Card(i+1, suite_list[j]))
-                        a[j][i]=0
-            if len(f)!=0:
-                melds_column.append(f)
-
-        chances_column = []
-        for i in range(13):
-            c = []
-            count = 0
-            for j in range(4):
-                if(a[j][i]==1):
-                    count+=1
-            if(count==2):
-                for j in range(4):
-                    if(a[j][i]==1):
-                        c.append(Card(i+1, suite_list[j]))
-                        a[j][i]=0
-            if len(c)!=0:
-                chances_column.append(c)
-
-        chances_row = []
-        for i in range(4):
-            c = []
-            count = 0
-            for j in range(13):
-               if(a[i][j]==1):
-                   count=count+1
-               k = 0
-               if (count>=2):
-                   if(count/(j+1)>0.5):
-                       if (count==2):
-                           k = j-1
-                           for x in range(k,k+2):
-                               c.append(Card(x+1,suite_list[i]))
-                       if(count==3):
-                           k = j-2
-                           for x in range(k,k+3):
-                               c.append(Card(x+1,suite_list[i]))
-                   else:
-                       count = 0
-            if len(c)!=0:
-                chances_row.append(c)
+                if a[i][j] == 1:
+                    if j != 12 and a[i][(j+1)%13] == 1 and a[i][(j+2)%13] == 1:
+                        if j != 11 and a[i][(j+3)%13] == 1:
+                            self.melds.append([Card((j)%13 + 1, suite_list[i]), Card((j+1)%13 + 1, suite_list[i]), Card((j+2)%13 + 1, suite_list[i]), Card((j+3)%13 + 1, suite_list[i])])
+                        else:
+                            self.melds.append([Card((j)%13 + 1, suite_list[i]), Card((j+1)%13 + 1, suite_list[i]), Card((j+2)%13 + 1, suite_list[i])])
         
-        for meld in melds_row:
-            if len(meld)!=0:
-                self.melds.append(meld)
-        for meld in melds_column:
-            if len(meld)!=0:
-                self.melds.append(meld)
-        for chances in chances_column:
-            if len(chances)!=0:
-                self.chances.append(chances)
-        for chances in chances_row:
-            if len(chances)!=0:
-                self.chances.append(chances)
-        # print(chances_column)
+        straightMeldCards = list(set([card for sublist in self.melds for card in sublist]))
+        
+        for j in range(13):
+            temp = []
+            for k in range(4):
+                if a[k][j] == 1:
+                    temp.append(Card(j+1, suite_list[k]))
+            if len(temp) >= 3:
+                self.melds.append(temp)
+        
+        meldCards = list(set([card for sublist in self.melds for card in sublist]))
 
-            
+        for card in straightMeldCards:
+            a[suitDict[card.suit]][card.value-1] = 0
+
+        for i in range(4):
+            for j in range(13):
+                if a[i][j] == 1:
+                    first = (j+1)%13
+                    second = (j+2)%13
+                    third = (j+3)%13
+                    if j!=12 and (a[i][first] == 1 or a[i][second] == 1):
+                        temp = []
+                        temp.append(Card(j+1, suite_list[i]))
+                        if a[i][first] == 1:
+                            temp.append(Card(first+1, suite_list[i]))
+                        if a[i][second] == 1:
+                            temp.append(Card(second+1, suite_list[i]))
+                        if j != 11 and a[i][third] == 1:
+                            temp.append(Card(third+1, suite_list[i]))
+                        self.chances.append(temp)       
+        
+        for card in meldCards:
+            a[suitDict[card.suit]][card.value-1] = 0
+        
+        for j in range(13):
+            temp = []
+            for i in range(4):
+                if a[i][j] == 1:
+                    temp.append(Card(j+1, suite_list[i]))
+            if len(temp) == 2:
+                self.chances.append(temp)     
 
 
     # def updateMeldsAndChances(self, card, RemoveFlag=False): # updates melds and chances without modifying hand
@@ -215,6 +186,9 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
     def calculatePickup(self, openCard):  # same logic for both agents so I'm coding it here. Not used by user.
         # return 'D' or 'P'
         ## Calculate all flags first before picking up....
+
+        self.calculateMeldsAndChances()
+
         flag4carder=0
         for meld in self.melds:  
             if len(meld)>=4:
@@ -234,7 +208,14 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
             return 'P'
 
         #Assume we pickup a card that is not joker. Recalculate the melds and chances, if the recalculated satisfies, we pickup from the pile
-        self.updateMeldsAndChances(openCard)
+        self.hand.draw(openCard)
+        self.calculateMeldsAndChances()
+        breakFlag = 0
+        if self.getDiscardChoice() == 13:
+            breakFlag = 1
+        self.hand.discard(13)
+        if breakFlag:
+            return "D"
 
         #priority 2: Check if the card on top of discard pile forms a pure Sequence:
         flagPureSeqUpd=0
@@ -263,7 +244,6 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
             return "P"
         # Else Pickup from Deck(return D). 
         # Remove the card that we picked up from the discard pile
-        self.updateMeldsAndChances(openCard, True)
         return "D"
         
         
@@ -319,7 +299,7 @@ class BasicAgent(Player):
                     else:
                         discardOptions.append(chanceCopy[2])
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #2 -----------------------------------------------
@@ -330,8 +310,8 @@ class BasicAgent(Player):
                 sameNumChanceCards.extend(chance)
             else:
                 straightChanceCards.extend(chance)
-        sameNumChanceCards = list(set(sameNumChanceCards)).sort(key=lambda x: x.value, reverse=True)
-        straightChanceCards = list(set(straightChanceCards)).sort(key=lambda x: x.value, reverse=True)
+        sameNumChanceCards = sorted(list(set(sameNumChanceCards)), key=lambda x: x.value, reverse=True)
+        straightChanceCards = sorted(list(set(straightChanceCards)), key=lambda x: x.value, reverse=True)
 
         for card in sameNumChanceCards:
             if card not in straightChanceCards:
@@ -341,13 +321,13 @@ class BasicAgent(Player):
                             discardOptions.append(card)
                             break
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #3 -----------------------------------------------
         discardOptions = sameNumChanceCards.copy()
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #4 -----------------------------------------------
@@ -355,13 +335,13 @@ class BasicAgent(Player):
             if len(chance) == 2 and abs(chance[0].value - chance[1].value) in [2, 11, 12]:  # includes AQ and AK as gap chances
                 discardOptions.extend(chance)
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #5 -----------------------------------------------
         discardOptions = straightChanceCards.copy()
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
             return self.hand.cards.index(discardOptions[0])
         
         # ------------------------------------ Error Handling ----------------------------------------------
@@ -536,7 +516,7 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
                     else:
                         discardOptions.append(chanceCopy[2])
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #2 -----------------------------------------------
@@ -547,8 +527,8 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
                 sameNumChanceCards.extend(chance)
             else:
                 straightChanceCards.extend(chance)
-        sameNumChanceCards = list(set(sameNumChanceCards)).sort(key=lambda x: x.value, reverse=True)
-        straightChanceCards = list(set(straightChanceCards)).sort(key=lambda x: x.value, reverse=True)
+        sameNumChanceCards = sorted(list(set(sameNumChanceCards)), key=lambda x: x.value, reverse=True)
+        straightChanceCards = sorted(list(set(straightChanceCards)), key=lambda x: x.value, reverse=True)
 
         for card in sameNumChanceCards:
             if card not in straightChanceCards:
@@ -558,13 +538,13 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
                             discardOptions.append(card)
                             break
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #3 -----------------------------------------------
         discardOptions = sameNumChanceCards.copy()
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #4 -----------------------------------------------
@@ -572,13 +552,13 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
             if len(chance) == 2 and abs(chance[0].value - chance[1].value) in [2, 11, 12]:  # includes AQ and AK as gap chances
                 discardOptions.extend(chance)
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #5 -----------------------------------------------
         discardOptions = straightChanceCards.copy()
         if len(discardOptions):
-            discardOptions = list(set(discardOptions)).sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # ------------------------------------ Error Handling ----------------------------------------------
@@ -598,4 +578,4 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 
 if __name__ == "__main__":
-    GameMgr(123)
+    GameMgr(12345, gameMode="agents")

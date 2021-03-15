@@ -192,7 +192,7 @@ class Hand:
         elif j == 11:  # queen
             right1 = (bool(matrix[i][j+1]==1), (i, j+1))
             right2 = (bool(matrix[i][0]==1), (i, 0))
-            right3 = False
+            right3 = (False, (i, j))
         elif j == 10:  # jack:
             right1 = (bool(matrix[i][j+1]==1), (i, j+1))
             right2 = (bool(matrix[i][j+2]==1), (i, j+2))
