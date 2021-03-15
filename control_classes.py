@@ -112,12 +112,105 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
     
     def calculateMeldsAndChances(self):  # populates melds and chances without modifying hand
         # TODO: needs to be written by Abhishek
-        pass
+        suite_list = ['S','H','C','D']
+        melds_row = []
+        a = self.hand.cardMatrix.copy()
+        for i in range(4):
+            c = []
+            count = 0
+            for j in range(13):
+                if(a[i][j]==1):
+                    count+=1
+                else:
+                    count = 0
+                k = 0
+                if(count >= 3):
+                    if(count ==3 ):
+                        k = j-2
+                        for x in range(k,k+3):
+                            c.append(Card(x+1,suite_list[i]))
+                            a[i][x] = 0
+                    elif(count==4):
+                        k=j-3
+                        for x in range(k,k+4):
+                            c.append(Card(x+1,suite_list[i]))
+                            a[i][x] = 0
+            if len(c)!=0:
+                melds_row.append(c)
+        melds_column = []
+        for i in range(13):
+            f = []
+            count = 0
+            for j in range(4):
+                if(a[j][i]==1):
+                    count += 1
+            if(count>=3):
+                for j in range(4):
+                    if(a[j][i]==1):
+                        f.append(Card(i+1, suite_list[j]))
+                        a[j][i]=0
+            if len(f)!=0:
+                melds_column.append(f)
 
-    def updateMeldsAndChances(self, card, RemoveFlag=False): # updates melds and chances without modifying hand
-        # TODO: needs to be written by Abhishek
-        # RemoveFlag: True - remove card, False - add card
-        pass
+        chances_column = []
+        for i in range(13):
+            c = []
+            count = 0
+            for j in range(4):
+                if(a[j][i]==1):
+                    count+=1
+            if(count==2):
+                for j in range(4):
+                    if(a[j][i]==1):
+                        c.append(Card(i+1, suite_list[j]))
+                        a[j][i]=0
+            if len(c)!=0:
+                chances_column.append(c)
+
+        chances_row = []
+        for i in range(4):
+            c = []
+            count = 0
+            for j in range(13):
+               if(a[i][j]==1):
+                   count=count+1
+               k = 0
+               if (count>=2):
+                   if(count/(j+1)>0.5):
+                       if (count==2):
+                           k = j-1
+                           for x in range(k,k+2):
+                               c.append(Card(x+1,suite_list[i]))
+                       if(count==3):
+                           k = j-2
+                           for x in range(k,k+3):
+                               c.append(Card(x+1,suite_list[i]))
+                   else:
+                       count = 0
+            if len(c)!=0:
+                chances_row.append(c)
+        
+        for meld in melds_row:
+            if len(meld)!=0:
+                self.melds.append(meld)
+        for meld in melds_column:
+            if len(meld)!=0:
+                self.melds.append(meld)
+        for chances in chances_column:
+            if len(chances)!=0:
+                self.chances.append(chances)
+        for chances in chances_row:
+            if len(chances)!=0:
+                self.chances.append(chances)
+        # print(chances_column)
+
+            
+
+
+    # def updateMeldsAndChances(self, card, RemoveFlag=False): # updates melds and chances without modifying hand
+    #     # TODO: needs to be written by Abhishek
+    #     # RemoveFlag: True - remove card, False - add card
+    #     pass
 
     def calculatePickup(self, openCard):  # same logic for both agents so I'm coding it here. Not used by user.
         # return 'D' or 'P'
