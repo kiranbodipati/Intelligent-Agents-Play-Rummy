@@ -2,6 +2,15 @@ from entity_classes import *
 import numpy as np
 import random
 
+def saveToDB(dataList, filename):
+    resultStr = ",".join([str(x) for x in dataList]) + "\n"
+    with open(filename, "a") as fileobj:
+        fileobj.write(resultStr)
+
+def resetDB(filename):
+    with open(filename, "w") as fileobj:
+        fileobj.write("winner,starter,turns\n")
+
 class GameMgr:
     def __init__(self, seed=None, gameMode="user"):
         self.deck = Deck()
@@ -58,6 +67,7 @@ class GameMgr:
             self.turn+=1
             if self.Players[CurrentPlayer].hand.checkMelds()==True:
                 print("Player", CurrentPlayer+1, "wins! (Player", starter+1,"started)")
+                saveToDB([CurrentPlayer+1, starter+1, self.turn], "resultData.csv")
                 break
             CurrentPlayer = 1 - CurrentPlayer  # switches between 0 and 1
             print("Turns completed:",self.turn)
@@ -603,4 +613,6 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 
 if __name__ == "__main__":
-    GameMgr(1234, gameMode="bvb")
+    resetDB("resultData.csv")
+    for s in range(1, 1000):
+        GameMgr(s, gameMode="avb")
