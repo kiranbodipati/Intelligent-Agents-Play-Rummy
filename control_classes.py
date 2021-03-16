@@ -9,8 +9,14 @@ class GameMgr:
         # self.Player1 = Player()
         # self.Player2 = Player()
         # initializes game state
-        if gameMode == "agents":
+        if gameMode == "avb":
             self.Players = [AdvancedAgent(), BasicAgent()]
+        elif gameMode == "bva":
+            self.Players = [BasicAgent(), AdvancedAgent()]
+        elif gameMode == "ava":
+            self.Players = [AdvancedAgent(), AdvancedAgent()]
+        elif gameMode == "bvb":
+            self.Players = [BasicAgent(), BasicAgent()]
         else:
             self.Players = [Player(), Player()]
         
@@ -43,17 +49,19 @@ class GameMgr:
         self.discardPile.discard(self.deck.draw())    
     
     def PlayPvP(self):
-        CurrentPlayer=random.choice([0,1])
+        CurrentPlayer=random.randint(0, 1)
+        starter = CurrentPlayer
         self.turn=0
         while(True):
             if self.Play(CurrentPlayer):
                 break
             self.turn+=1
             if self.Players[CurrentPlayer].hand.checkMelds()==True:
-                print("Player", CurrentPlayer+1, "wins!")
+                print("Player", CurrentPlayer+1, "wins! (Player", starter+1,"started)")
                 break
             CurrentPlayer = 1 - CurrentPlayer  # switches between 0 and 1
-            print("Turn:",self.turn)
+            print("Turns completed:",self.turn)
+            print("\n\n")
 
     
     def Play(self, CurrentPlayer):  # return true at any point to quit the game
@@ -578,4 +586,4 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 
 if __name__ == "__main__":
-    GameMgr(12345, gameMode="agents")
+    GameMgr(1234, gameMode="bvb")
