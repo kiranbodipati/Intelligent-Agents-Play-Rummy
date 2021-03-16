@@ -248,7 +248,7 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
             return "P"
         #priority 5: Check any new chance is created
         countChancesUpd=len(self.chances)
-        if (countMeldsUpd>countChances):
+        if (countChancesUpd>countChances):
             return "P"
         # Else Pickup from Deck(return D). 
         # Remove the card that we picked up from the discard pile
@@ -273,12 +273,15 @@ class BasicAgent(Player):
         return self.calculatePickup(openCard)
     
     def getDiscardChoice(self):  # TODO: update melds and chances at the end
+        # print(self.melds)
+        # print(self.chances)
         useful = [item for sublist in self.melds+self.chances for item in sublist]
         useful = list(set(useful))
         junk = [card for card in self.hand.cards if (card not in useful and card.value != -1 and card.value != self.hand.rummyJokerVal)]
 
         if len(junk):
-            junk.sort(key=lambda x: x.points, reverse=True)
+            junk.sort(key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Discarding Junk")
             return self.hand.cards.index(junk[0])  # discards junk card of highest value
         
         # if no junk cards, needs to break chances in following order of priority:
@@ -307,7 +310,8 @@ class BasicAgent(Player):
                     else:
                         discardOptions.append(chanceCopy[2])
         if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Priority 1")
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #2 -----------------------------------------------
@@ -329,27 +333,36 @@ class BasicAgent(Player):
                             discardOptions.append(card)
                             break
         if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Priority 2")
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #3 -----------------------------------------------
         discardOptions = sameNumChanceCards.copy()
         if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Priority 3")
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #4 -----------------------------------------------
+        meldCards = [item for sublist in self.melds for item in sublist]
         for chance in self.chances:
             if len(chance) == 2 and abs(chance[0].value - chance[1].value) in [2, 11, 12]:  # includes AQ and AK as gap chances
                 discardOptions.extend(chance)
+        discardOptions = [card for card in discardOptions if card not in meldCards]  # necessary because overlaps happen
         if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
+            # print(discardOptions)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Priority 4")
+            # print(discardOptions)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #5 -----------------------------------------------
         discardOptions = straightChanceCards.copy()
+        discardOptions = [card for card in discardOptions if card not in meldCards]  # necessary because overlaps happen
         if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: x.points, reverse=True)
+            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (x.points, x.value, str(x)), reverse=True)
+            # print("Priority 5")
             return self.hand.cards.index(discardOptions[0])
         
         # ------------------------------------ Error Handling ----------------------------------------------
@@ -358,6 +371,7 @@ class BasicAgent(Player):
         # so, we can remove one card from the end of the longest meld and win regardless.
         # extra error handling - if all lists are empty, just return 0, though it'll probably break anyway.
 
+        print("Last priority")
         try:
             meldCopy = sorted(self.melds, key=lambda x: len(x), reverse=True)
             longestMeld = meldCopy[0]
@@ -556,15 +570,18 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #4 -----------------------------------------------
+        meldCards = [item for sublist in self.melds for item in sublist]
         for chance in self.chances:
             if len(chance) == 2 and abs(chance[0].value - chance[1].value) in [2, 11, 12]:  # includes AQ and AK as gap chances
                 discardOptions.extend(chance)
+        discardOptions = [card for card in discardOptions if card not in meldCards]  # necessary because overlaps happen
         if len(discardOptions):
             discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #5 -----------------------------------------------
         discardOptions = straightChanceCards.copy()
+        discardOptions = [card for card in discardOptions if card not in meldCards]  # necessary because overlaps happen
         if len(discardOptions):
             discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
