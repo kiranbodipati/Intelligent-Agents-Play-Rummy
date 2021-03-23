@@ -2,6 +2,9 @@ from entity_classes import *
 import numpy as np
 import random
 
+float_formatter = "{:.0f}".format
+np.set_printoptions(formatter={'float_kind':float_formatter})
+
 def saveToDB(dataList, filename):
     resultStr = ",".join([str(x) for x in dataList]) + "\n"
     with open(filename, "a") as fileobj:
@@ -12,7 +15,7 @@ def resetDB(filename):
         fileobj.write("winner,starter,turns\n")
 
 class GameMgr:
-    def __init__(self, seed=None, gameMode="user"):
+    def __init__(self, seed=None, gameMode="pvp"):
         self.deck = Deck()
         self.discardPile = DiscardPile()
         # self.Player1 = Player()
@@ -26,6 +29,10 @@ class GameMgr:
             self.Players = [AdvancedAgent(), AdvancedAgent()]
         elif gameMode == "bvb":
             self.Players = [BasicAgent(), BasicAgent()]
+        elif gameMode == "pvb":
+            self.Players = [Player(), BasicAgent()]
+        elif gameMode == "pva":
+            self.Players = [Player(), AdvancedAgent()]
         else:
             self.Players = [Player(), Player()]
         
@@ -94,10 +101,12 @@ class GameMgr:
                         return True
                     if self.Players[1-CurrentPlayer].isObserving:
                         self.Players[1-CurrentPlayer].opponentPickChoice(openCard, False)
+                        # print(self.Players[1-CurrentPlayer].heatmap)
                     self.Players[CurrentPlayer].hand.draw(self.deck.draw())  # assumes the agent does not pick up and discard the open card, remember to test later
                 elif loc=='P':
                     if self.Players[1-CurrentPlayer].isObserving:
                         self.Players[1-CurrentPlayer].opponentPickChoice(openCard, True)
+                        # print(self.Players[1-CurrentPlayer].heatmap)
                     self.Players[CurrentPlayer].hand.draw(self.discardPile.draw())
                 else:
                     raise ValueError
@@ -118,6 +127,7 @@ class GameMgr:
                 self.Players[CurrentPlayer].discardHistory.append(self.discardPile.cards[-1])
                 if self.Players[1-CurrentPlayer].isObserving:
                     self.Players[1-CurrentPlayer].opponentDiscards(self.discardPile.cards[-1])
+                    # print(self.Players[1-CurrentPlayer].heatmap)
                 break
             except:
                 print("Error - invalid choice, try again:", ind)
@@ -131,6 +141,7 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         self.melds = []
         self.chances = []
         self.discardHistory = []
+        # self.heatmap = []
     
     def getPickupChoice(self, openCard):
         print("Top of discard pile:", openCard)
@@ -522,9 +533,9 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
         useful = list(set(useful))
         junk = [card for card in self.hand.cards if (card not in useful and card.value != -1 and card.value != self.hand.rummyJokerVal)]
 
-        if len(junk):
-            junk.sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
-            return self.hand.cards.index(junk[0])  # discards junk card of highest value
+        # if len(junk):
+        #     junk.sort(key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+        #     return self.hand.cards.index(junk[0])  # discards junk card of highest value
         
         # if no junk cards, needs to break chances in following order of priority:
         # 1. 4-carder chance if 4-carder already exists (discard the single card on one side of the gap)
@@ -533,7 +544,8 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
         # 4. straight sequence chance with a gap, of lowest heatmap value
         # 5. lowest heatmap value card not in a sequence
 
-        discardOptions = []
+        # discardOptions = []
+        discardOptions = junk.copy()
 
         # -------------------------------------- Priority #1 -----------------------------------------------
         flag4carder = 0
@@ -566,19 +578,20 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
         sameNumChanceCards = sorted(list(set(sameNumChanceCards)), key=lambda x: x.value, reverse=True)
         straightChanceCards = sorted(list(set(straightChanceCards)), key=lambda x: x.value, reverse=True)
 
-        for card in sameNumChanceCards:
-            if card not in straightChanceCards:
-                for card2 in sameNumChanceCards:
-                    if card2.value == card.value and card != card2:
-                        if card2 in straightChanceCards:
-                            discardOptions.append(card)
-                            break
-        if len(discardOptions):
-            discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
-            return self.hand.cards.index(discardOptions[0])
+        # for card in sameNumChanceCards:
+        #     if card not in straightChanceCards:
+        #         for card2 in sameNumChanceCards:
+        #             if card2.value == card.value and card != card2:
+        #                 if card2 in straightChanceCards:
+        #                     discardOptions.append(card)
+        #                     break
+        # if len(discardOptions):
+        #     discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
+        #     return self.hand.cards.index(discardOptions[0])
         
         # -------------------------------------- Priority #3 -----------------------------------------------
-        discardOptions = sameNumChanceCards.copy()
+        # discardOptions = sameNumChanceCards.copy()
+        discardOptions = [card for card in sameNumChanceCards if card not in straightChanceCards]
         if len(discardOptions):
             discardOptions = sorted(list(set(discardOptions)), key=lambda x: (self.heatmap[suitDict[x.suit]][x.value-1], -x.points), reverse=False)
             return self.hand.cards.index(discardOptions[0])
@@ -618,6 +631,7 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 if __name__ == "__main__":
     resetDB("resultData.csv")
-    n = 1
+    n = 1000
     for s in range(n, n+1000):
         GameMgr(s, gameMode="avb")
+    # GameMgr(gameMode="pva")
