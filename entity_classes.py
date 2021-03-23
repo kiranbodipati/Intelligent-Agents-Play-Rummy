@@ -271,3 +271,133 @@ class Hand:
                 print(meld)
                 return True  # dfs match found
         return False  # no match in this dfs branch, backtracks one step
+    
+    def calculatePoints(self, matrix=None, jkr=None, pureFlag=0, pts=0, fullHand=None):
+        try:
+            if matrix==None:
+                matrix = self.cardMatrix.copy()
+        except:
+            pass
+        try:
+            if jkr==None:
+                jkr = self.jokers
+        except:
+            pass
+        try:
+            if fullHand==None:
+                fullHand = 0
+                for s in suitDict.keys():
+                    i = suitDict[s]
+                    for j in range(13):
+                        if matrix[i][j]==1:
+                            fullHand += Card(j+1, s).points
+        except:
+            pass
+
+        # Recursive function
+        # set "fullHand" to full points of hand if none
+        # find first 1 in matrix, check all melds (including chances+jokers, reduce num of jokers in this case) using this card
+        # to melds, always add just the card itself, in which case you increment "pts" by the card's points (this condition accounts for when card is left alone)
+        # set min_temp to fullHand
+        # for each meld, recursive call calculatePoints with new matrix, without the cards in the meld being considered
+        # if value returned is less than min_temp, replace min_temp. Else, continue.
+        # on evaluating all options, return min_temp
+        # base case -> if matrix is all 0s: if pureFlag is 1, return pts. Else, return minpts.
+
+        # Base case:
+        if (matrix==self.compMatrix).all():
+            if pureFlag:
+                return pts
+            else:
+                return fullHand
+        
+        # Recursive case
+        # search for straight melds on right side only, prevents overlap
+        shp = np.shape(matrix)
+        i, j = getFirstCard(matrix, shp)
+        if j == 12:  # king
+            right1 = right2 = right3 = (False, (i,j))
+        elif j == 11:  # queen
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][0]==1), (i, 0))
+            right3 = (False, (i, j))
+        elif j == 10:  # jack:
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][j+2]==1), (i, j+2))
+            right3 = (bool(matrix[i][0]==1), (i, 0))
+        else:
+            right1 = (bool(matrix[i][j+1]==1), (i, j+1))
+            right2 = (bool(matrix[i][j+2]==1), (i, j+2))
+            right3 = (bool(matrix[i][j+3]==1), (i, j+3))
+        
+        melds = []
+        # no elif anywhere in case the other card needs to be used for something; considers all cases
+
+        # straight melds
+        # pure highest in order so it's considered first if possible
+        if right1[0] and right2[0]:
+            if right3[0]:
+                melds.append([[(i, j), right1[1], right2[1], right3[1]], 1])  # priority 1
+            melds.append([[(i, j), right1[1], right2[1]], 1])  # priority 2
+            if jkr:
+                melds.append([[(i, j), right1[1], right2[1], "JKR"], 0])  # priority 3
+        if right1[0] and jkr:
+            if right3[0]:
+                melds.append([[(i, j), right1[1], "JKR", right3[1]], 0])  # priority 4
+            melds.append([[(i, j), right1[1], "JKR"], 0])  # priority 5
+        if right2[0] and jkr:
+            if right3[0]:
+                melds.append([[(i, j), "JKR", right2[1], right3[1]], 0])  # priority 6
+            melds.append([[(i, j), "JKR", right2[1]], 0])  # priority 7
+        if jkr > 1:
+            if right3[0]:
+                melds.append([[(i, j), "JKR", "JKR", right3[1]], 0])  # priority 8
+            melds.append([[(i, j), "JKR", "JKR"], 0])  # priority 9
+
+        # same value melds
+        j_vals = getSameValue(matrix, (i, j))
+        if len(j_vals) == 3:
+            melds.append([[(i, j), j_vals[0], j_vals[1], j_vals[2]], 0])  # priority 10
+            melds.append([[(i, j), j_vals[0], j_vals[1]], 0])  # priority 11
+            melds.append([[(i, j), j_vals[2], j_vals[1]], 0])  # priority 12
+            melds.append([[(i, j), j_vals[0], j_vals[2]], 0])  # priority 13
+            if jkr:
+                melds.append([[(i, j), "JKR", j_vals[1], j_vals[2]], 0])  # priority 14
+                melds.append([[(i, j), j_vals[0], "JKR", j_vals[2]], 0])  # priority 15
+                melds.append([[(i, j), j_vals[0], j_vals[1], "JKR"], 0])  # priority 16
+            if jkr > 1:
+                melds.append([[(i, j), j_vals[0], "JKR", "JKR"], 0])  # priority 17
+                melds.append([[(i, j), j_vals[1], "JKR", "JKR"], 0])  # priority 18
+                melds.append([[(i, j), j_vals[2], "JKR", "JKR"], 0])  # priority 19
+        elif len(j_vals) == 2:
+            melds.append([[(i, j), j_vals[0], j_vals[1]], 0])  # priority 10
+            if jkr:
+                melds.append([[(i, j), j_vals[0], j_vals[1], "JKR"], 0])  # priority 11
+                melds.append([[(i, j), "JKR", j_vals[1]], 0])  # priority 12
+                melds.append([[(i, j), j_vals[0], "JKR"], 0])  # priority 13
+        elif len(j_vals) == 1 and jkr:
+            melds.append([[(i, j), j_vals[0], "JKR"], 0])  # priority 10
+
+        # print(melds)  # for debugging purposes only
+        melds.append([[(i, j)], 0])  # case where card is added to points and not considered for future melds
+        min_temp = fullHand
+
+        for item in melds:
+            meld = item[0]
+            matrixCopy = matrix.copy()
+            jkrCopy = jkr
+            pureCopy = pureFlag
+            ptsCopy = pts
+            if item[1]:
+                pureCopy += 1
+            if len(meld) == 1:
+                for s in suitDict.keys():
+                    if suitDict[s] == meld[0][0]:
+                        ptsCopy += Card(meld[0][1]+1, s).points
+            for index in meld:
+                if index == "JKR":
+                    jkrCopy -= 1
+                else:
+                    matrixCopy[index[0]][index[1]] = 0
+            min_temp = min(min_temp, self.calculatePoints(matrixCopy, jkrCopy, pureCopy, ptsCopy, fullHand))  # recursive call
+        return min_temp

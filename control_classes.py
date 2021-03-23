@@ -12,10 +12,11 @@ def saveToDB(dataList, filename):
 
 def resetDB(filename):
     with open(filename, "w") as fileobj:
-        fileobj.write("winner,starter,turns\n")
+        fileobj.write("winner,starter,turns,pts\n")
 
 class GameMgr:
-    def __init__(self, seed=None, gameMode="pvp"):
+    def __init__(self, seed=None, gameMode="pvp", verbose=1):
+        self.verbose = verbose
         self.deck = Deck()
         self.discardPile = DiscardPile()
         # self.Player1 = Player()
@@ -38,16 +39,17 @@ class GameMgr:
         
         self.DealGame(seed)
 
-        print("Hand 1:", self.Players[0].hand)
-        print()
-        print("Hand 2:", self.Players[1].hand)
-        print()
-        print(self.discardPile)
-        print()
-        print(self.deck)
-        print("Joker:", self.deck.joker)
-        print("Length of deck:", len(self.deck.cards))
-        print()
+        if self.verbose:
+            print("Hand 1:", self.Players[0].hand)
+            print()
+            print("Hand 2:", self.Players[1].hand)
+            print()
+            print(self.discardPile)
+            print()
+            print(self.deck)
+            print("Joker:", self.deck.joker)
+            print("Length of deck:", len(self.deck.cards))
+            print()
 
         self.PlayPvP()
 
@@ -74,27 +76,33 @@ class GameMgr:
             self.turn+=1
             if self.Players[CurrentPlayer].hand.checkMelds()==True:
                 print("Player", CurrentPlayer+1, "wins! (Player", starter+1,"started)")
-                saveToDB([CurrentPlayer+1, starter+1, self.turn], "resultData.csv")
+                pts = self.Players[1-CurrentPlayer].hand.calculatePoints()
+                print("Player", CurrentPlayer+1, "wins", pts,"points.")
+                print("\n")
+                saveToDB([CurrentPlayer+1, starter+1, self.turn, pts], "resultData.csv")
                 break
             CurrentPlayer = 1 - CurrentPlayer  # switches between 0 and 1
-            print("Turns completed:",self.turn)
-            print("\n\n")
+            if self.verbose:
+                print("Turns completed:",self.turn)
+                print("\n\n")
 
     
     def Play(self, CurrentPlayer):  # return true at any point to quit the game
-        print(int(CurrentPlayer+1), "\'s turn:")
-        print("Hand:", self.Players[CurrentPlayer].hand)
-        print(self.discardPile)
-        print()
-        print("Joker:", self.deck.joker)
-        print()
-        print("Where do you want to?\nEnter \n'D' to draw from Deck \n'P' to draw from discard pile")
+        if self.verbose:
+            print(int(CurrentPlayer+1), "\'s turn:")
+            print("Hand:", self.Players[CurrentPlayer].hand)
+            print(self.discardPile)
+            print()
+            print("Joker:", self.deck.joker)
+            print()
+            print("Where do you want to?\nEnter \n'D' to draw from Deck \n'P' to draw from discard pile")
         
         openCard = self.discardPile.cards[-1]
         while True:
             try:
                 loc = self.Players[CurrentPlayer].getPickupChoice(openCard)
-                print(loc)
+                if self.verbose:
+                    print(loc)
                 if loc=='D':
                     if not len(self.deck.cards):
                         print("Deck exhausted, it's a draw.")
@@ -115,13 +123,15 @@ class GameMgr:
                 print("Error - incorrect input, try again:")
                 continue
         self.Players[CurrentPlayer].calculateMeldsAndChances()
-        print("index: ", "".join([str(x)+"     " for x in range(0, len(self.Players[CurrentPlayer].hand.cards))]))
-        print("Hand:", self.Players[CurrentPlayer].hand)
-        print("Enter index of card to disard:")
+        if self.verbose:
+            print("index: ", "".join([str(x)+"     " for x in range(0, len(self.Players[CurrentPlayer].hand.cards))]))
+            print("Hand:", self.Players[CurrentPlayer].hand)
+            print("Enter index of card to disard:")
         while True:
             try:
                 ind=int(self.Players[CurrentPlayer].getDiscardChoice())
-                print(ind)
+                if self.verbose:
+                    print(ind)
                 self.discardPile.discard(self.Players[CurrentPlayer].hand.discard(ind))
                 self.Players[CurrentPlayer].calculateMeldsAndChances()
                 self.Players[CurrentPlayer].discardHistory.append(self.discardPile.cards[-1])
@@ -132,7 +142,8 @@ class GameMgr:
             except:
                 print("Error - invalid choice, try again:", ind)
                 continue
-        print("Hand:", self.Players[CurrentPlayer].hand)
+        if self.verbose:
+            print("Hand:", self.Players[CurrentPlayer].hand)
         
 
 class Player:  # by default, it's a real user. Agents inherit from this class.
@@ -144,7 +155,7 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         # self.heatmap = []
     
     def getPickupChoice(self, openCard):
-        print("Top of discard pile:", openCard)
+        # print("Top of discard pile:", openCard)
         return input()
     
     def getDiscardChoice(self):
@@ -396,7 +407,7 @@ class BasicAgent(Player):
         # so, we can remove one card from the end of the longest meld and win regardless.
         # extra error handling - if all lists are empty, just return 0, though it'll probably break anyway.
 
-        print("Last priority")
+        print("Last priority encountered")
         try:
             meldCopy = sorted(self.melds, key=lambda x: len(x), reverse=True)
             longestMeld = meldCopy[0]
@@ -633,5 +644,5 @@ if __name__ == "__main__":
     resetDB("resultData.csv")
     n = 1000
     for s in range(n, n+1000):
-        GameMgr(s, gameMode="avb")
+        GameMgr(s, gameMode="avb", verbose=0)
     # GameMgr(gameMode="pva")
