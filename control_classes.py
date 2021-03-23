@@ -115,6 +115,7 @@ class GameMgr:
                 print(ind)
                 self.discardPile.discard(self.Players[CurrentPlayer].hand.discard(ind))
                 self.Players[CurrentPlayer].calculateMeldsAndChances()
+                self.Players[CurrentPlayer].discardHistory.append(self.discardPile.cards[-1])
                 if self.Players[1-CurrentPlayer].isObserving:
                     self.Players[1-CurrentPlayer].opponentDiscards(self.discardPile.cards[-1])
                 break
@@ -129,6 +130,7 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         self.hand = Hand()
         self.melds = []
         self.chances = []
+        self.discardHistory = []
     
     def getPickupChoice(self, openCard):
         print("Top of discard pile:", openCard)
@@ -224,12 +226,15 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
         #priority 1: Check if the card on top of discard pile is a Joker, pickup
         if(openCard.value==-1 or openCard.value==self.hand.rummyJokerVal):
             return 'P'
+        
+        if openCard in self.discardHistory:  # don't pick up a card you've discarded before
+            return "D"
 
         #Assume we pickup a card that is not joker. Recalculate the melds and chances, if the recalculated satisfies, we pickup from the pile
         self.hand.draw(openCard)
         self.calculateMeldsAndChances()
         breakFlag = 0
-        if self.getDiscardChoice() == 13:
+        if self.getDiscardChoice() == 13:  # don't pick up a card if it's your best discard option immediately after
             breakFlag = 1
         self.hand.discard(13)
         if breakFlag:
@@ -614,5 +619,6 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 if __name__ == "__main__":
     resetDB("resultData.csv")
-    for s in range(1, 1000):
+    n = 1
+    for s in range(n, n+10000):
         GameMgr(s, gameMode="avb")
