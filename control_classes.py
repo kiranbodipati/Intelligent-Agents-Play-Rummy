@@ -155,6 +155,8 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
                             self.melds.append([Card((j)%13 + 1, suite_list[i]), Card((j+1)%13 + 1, suite_list[i]), Card((j+2)%13 + 1, suite_list[i])])
         
         straightMeldCards = list(set([card for sublist in self.melds for card in sublist]))
+        for card in straightMeldCards:
+            a[suitDict[card.suit]][card.value-1] = 0
         
         for j in range(13):
             temp = []
@@ -165,9 +167,6 @@ class Player:  # by default, it's a real user. Agents inherit from this class.
                 self.melds.append(temp)
         
         meldCards = list(set([card for sublist in self.melds for card in sublist]))
-
-        for card in straightMeldCards:
-            a[suitDict[card.suit]][card.value-1] = 0
 
         for i in range(4):
             for j in range(13):
@@ -620,5 +619,5 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 if __name__ == "__main__":
     resetDB("resultData.csv")
     n = 1
-    for s in range(n, n+10000):
+    for s in range(n, n+1000):
         GameMgr(s, gameMode="avb")
