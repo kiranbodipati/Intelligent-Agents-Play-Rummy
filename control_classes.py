@@ -643,6 +643,6 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 if __name__ == "__main__":
     resetDB("resultData.csv")
     n = 1000
-    for s in range(n, n+1000):
+    for s in range(n, n+10000):
         GameMgr(s, gameMode="avb", verbose=0)
     # GameMgr(gameMode="pva")
