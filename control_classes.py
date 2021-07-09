@@ -642,7 +642,22 @@ class AdvancedAgent(Player):  # TODO: override getDiscardChoice()
 
 if __name__ == "__main__":
     resetDB("resultData.csv")
-    n = 1000
-    for s in range(n, n+10000):
-        GameMgr(s, gameMode="avb", verbose=0)
-    # GameMgr(gameMode="pva")
+    ''' 
+    Uncomment the following 3 lines to reproduce experiment for the paper.
+    current mode is avb(experiment), Change to bvb for control data
+    '''
+    # n = 1000
+    # for s in range(n, n+10000):
+    #     GameMgr(s, gameMode="avb", verbose=0)
+
+    ''' Repository for general use'''
+    import argparse
+    import sys
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-seed', type=int, help='Seed to fix game(int)')
+    parser.add_argument('-gm', '--gameMode', default="pva", help='To set Game mode: pva, pvb, avb, bvb, ava, pvp')
+    parser.add_argument('-v', '--verbose', type=int, default=0, help='Enable terminal logging(int): 0=no logs, 1=logs')
+    args = parser.parse_args()
+    print(args)
+    GameMgr(seed=args.seed, gameMode=args.gameMode, verbose=args.verbose)
