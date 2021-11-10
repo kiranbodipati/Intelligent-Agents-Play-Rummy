@@ -14,7 +14,9 @@ Gambling in Indian Rummy has become increasingly popular over the last few years
   - verbose: ```-v``` or ```--verbose``` to enable logging on terminal. 0 for no logs, 1 for logging each iteration.
 
   Example usage:
-  ```python control_classes.py -seed 1000 -gm pva -v 1 ```
+  ```
+  python control_classes.py -seed 1000 -gm pva -v 1 
+  ```
 
   Additionally each time the program is run, the final results of the game is written to resultData.csv
  Edit the main function to run multiple simulations and reproduce the expreiment. The csv sheets of our experiment have already been provided
